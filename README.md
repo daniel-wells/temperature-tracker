@@ -18,3 +18,5 @@ api.key <- "ExampleApiKey0908338"
 # Results
 
 ![Plot of Temperature over Time](temperature.png)
+
+You can see when I went away towards the end of March and turned down my radiator. Unfortunately towards the end of April the storage ran out and I forgot to empty it.
