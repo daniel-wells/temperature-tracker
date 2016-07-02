@@ -22,7 +22,7 @@ api.key <- "ExampleApiKey0908338"
 You can see when I went away towards the end of March and turned down my radiator. Unfortunately towards the end of April the storage ran out and I forgot to empty it.
 
 We can also plot temperature in a calendar fashion which helps in identifying weekly patterns:
-![Plot of Temperature over Time](temperature_calendar_.png)
+![Plot of Temperature over Time](temperature_calendar.png)
 
 Calculating an average temperature over a day we can see again that the fluctuation in the outisde temperature is much greater than in my room.
 ![Plot of Temperature over Time](daily_temperature.png)
