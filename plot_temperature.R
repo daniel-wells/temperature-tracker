@@ -1,0 +1,63 @@
+library(data.table)
+library(lubridate)
+library(ggplot2)
+
+clean.file <- function(data){
+  # remove empty columns
+  data$No. <- NULL
+  data$V2 <- NULL
+  data$Time <- NULL
+  data$"Temperature°C     Humidity%RH" <- NULL
+  data$V7 <- NULL
+  
+  setnames(data,c("time","temperature"))
+  
+  # convert time to POSIXct
+  data$time <- ymd_hms(data$time)
+  
+  # remove first 15 readings (to remove temperature spike at start)
+  data <- data[-c(1:15)]
+  return(data)
+}
+
+internal.temperature <- data.table()
+for (file in list.files(pattern="temperature[0-9]+.tsv")){
+  internal.temperature <- rbind(internal.temperature,clean.file(fread(file)))
+}
+
+internal.temperature$source <- "Inside Temperature"
+
+# https://datamarket.azure.com/dataset/datagovuk/metofficeweatheropendata
+# limit ID > 5300088 & site name == BENSON (3658)
+# https://api.datamarket.azure.com/DataGovUK/MetOfficeWeatherOpenData/v1/Observation?$filter=ID%20gt%205300000L%20and%20SiteName%20eq%20%27BENSON%20(3658)%27
+
+# Load primary account key
+source("config.R")
+
+external.temperature <- fread(paste0("https://datamarket.azure.com/offer/download?endpoint=https%3A%2F%2Fapi.datamarket.azure.com%2FDataGovUK%2FMetOfficeWeatherOpenData%2Fv1%2F&query=Observation%3F%24filter%3DID%2520gt%25205300000L%2520and%2520SiteName%2520eq%2520%2527BENSON%2520(3658)%2527&accountKey=",api.key,"&title=UK+Met+Office+Weather+Open+Data&name=UK+Met+Office+Weather+Open+Data-Observation"))
+
+external.temperature$ObservationDate <- substr(external.temperature$ObservationDate,0,10)
+external.temperature$ObservationTime2 <- ymd_h(paste(external.temperature$ObservationDate,external.temperature$ObservationTime))
+
+# subset
+external.temperature <- external.temperature[,.("time"=ObservationTime2,"temperature"=ScreenTemperature,"source"="Outside Temperature (RAF Benson)")]
+
+# 
+external.temperature <- external.temperature[time %within% interval(min(internal.temperature$time),max(internal.temperature$time))]
+
+temperature <- rbind(internal.temperature,external.temperature)
+temperature$temperature <- as.numeric(temperature$temperature)
+
+# remove outlier data points (-99.00)
+temperature <- temperature[temperature>(-30)]
+
+# plot
+png("temperature.png",width=800,height=400)
+ggplot(temperature, aes(time,temperature,group=source,colour=source)) + 
+  geom_line() + 
+  theme_minimal() +
+  scale_x_datetime(date_minor_breaks = "1 day") +  
+  scale_y_continuous(breaks =-5:27) +
+  theme(legend.position="bottom") +
+  labs(x="",y="Temperature (°C)")
+dev.off()
