@@ -1,6 +1,9 @@
 library(data.table)
 library(lubridate)
 library(ggplot2)
+# devtools::install_github('Ather-Energy/ggTimeSeries')
+library(ggTimeSeries)
+library(RColorBrewer)
 
 clean.file <- function(data){
   # remove empty columns
@@ -52,7 +55,7 @@ temperature$temperature <- as.numeric(temperature$temperature)
 temperature <- temperature[temperature>(-30)]
 
 # plot
-png("temperature.png",width=800,height=400)
+png("temperature.png",width=900,height=450)
 ggplot(temperature, aes(time,temperature,group=source,colour=source)) + 
   geom_line() + 
   theme_minimal() +
@@ -61,3 +64,40 @@ ggplot(temperature, aes(time,temperature,group=source,colour=source)) +
   theme(legend.position="bottom") +
   labs(x="",y="Temperature (°C)")
 dev.off()
+
+png("temperature_calendar.png",width=900,height=450)
+ggplot_calendar_heatmap(temperature[source=="Inside Temperature"],'time','temperature') +
+  scale_fill_distiller(palette = 'RdBu')
+# facet_wrap(~Year, ncol = 1) # for when there's more than one year of data
+dev.off()
+
+# set dat month year to the same for all point so can calculate daily fluctuation
+temperature$time.only <- as.POSIXct(strftime(temperature$time, format="%H:%M:%S"), format="%H:%M:%S")
+
+# assign each data point to an interval
+temperature$interval <- as.POSIXct(cut(temperature$time.only,"5 mins"))
+
+# caclulate mean
+daily.temperature <- temperature[,.(mean.temp=mean(temperature)),by=list(source,interval)]
+
+# plot average daily pattern
+png("daily_temperature.png",width=900,height=450)
+ggplot(daily.temperature, aes(interval,mean.temp,group=source,colour=source)) + 
+  geom_line() + 
+  theme_minimal() +
+  scale_x_datetime(date_labels="%H:%M") +
+  theme(legend.position="bottom") +
+  labs(x="Time",y="Mean Temperature (°C)")
+dev.off()
+
+png("daily_inside_temperature.png",width=900,height=450)
+ggplot(daily.temperature[source=="Inside Temperature"], aes(interval,mean.temp)) + 
+  geom_line() + 
+  theme_minimal() +
+  scale_x_datetime(date_labels="%H:%M") +
+  labs(x="Time",y="Mean Temperature (°C)")
+dev.off()
+
+# plot all temp points over a single day timeframe
+ggplot(temperature[source=="Inside Temperature"], aes(time.only,temperature,group=source,colour=source)) + 
+  geom_point(alpha = 0.1)
