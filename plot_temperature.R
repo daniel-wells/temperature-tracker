@@ -24,7 +24,7 @@ clean.file <- function(data){
 }
 
 internal.temperature <- data.table()
-for (file in list.files(pattern="temperature[0-9]+.tsv")){
+for (file in list.files(pattern="data/temperature[0-9]+.tsv")){
   internal.temperature <- rbind(internal.temperature,clean.file(fread(file)))
 }
 
@@ -55,7 +55,7 @@ temperature$temperature <- as.numeric(temperature$temperature)
 temperature <- temperature[temperature>(-30)]
 
 # plot
-png("temperature.png",width=900,height=450)
+png("plots/temperature.png",width=900,height=450)
 ggplot(temperature, aes(time,temperature,group=source,colour=source)) + 
   geom_line() + 
   theme_minimal() +
@@ -65,7 +65,7 @@ ggplot(temperature, aes(time,temperature,group=source,colour=source)) +
   labs(x="",y="Temperature (°C)")
 dev.off()
 
-png("temperature_calendar.png",width=900,height=450)
+png("plots/temperature_calendar.png",width=900,height=450)
 ggplot_calendar_heatmap(temperature[source=="Inside Temperature"],'time','temperature') +
   scale_fill_distiller(palette = 'RdBu')
 # facet_wrap(~Year, ncol = 1) # for when there's more than one year of data
@@ -81,7 +81,7 @@ temperature$interval <- as.POSIXct(cut(temperature$time.only,"5 mins"))
 daily.temperature <- temperature[,.(mean.temp=mean(temperature)),by=list(source,interval)]
 
 # plot average daily pattern
-png("daily_temperature.png",width=900,height=450)
+png("plots/daily_temperature.png",width=900,height=450)
 ggplot(daily.temperature, aes(interval,mean.temp,group=source,colour=source)) + 
   geom_line() + 
   theme_minimal() +
@@ -90,7 +90,7 @@ ggplot(daily.temperature, aes(interval,mean.temp,group=source,colour=source)) +
   labs(x="Time",y="Mean Temperature (°C)")
 dev.off()
 
-png("daily_inside_temperature.png",width=900,height=450)
+png("plots/daily_inside_temperature.png",width=900,height=450)
 ggplot(daily.temperature[source=="Inside Temperature"], aes(interval,mean.temp)) + 
   geom_line() + 
   theme_minimal() +
