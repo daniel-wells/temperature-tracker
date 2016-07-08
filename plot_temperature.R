@@ -75,7 +75,7 @@ dev.off()
 temperature$time.only <- as.POSIXct(strftime(temperature$time, format="%H:%M:%S"), format="%H:%M:%S")
 
 # assign each data point to an interval
-temperature$interval <- as.POSIXct(cut(temperature$time.only,"5 mins"))
+temperature$interval <- as.POSIXct(cut(temperature$time.only,"30 mins"))
 
 # caclulate mean
 daily.temperature <- temperature[,.(mean.temp=mean(temperature)),by=list(source,interval)]
