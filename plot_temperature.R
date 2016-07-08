@@ -106,3 +106,25 @@ dev.off()
 # plot all temp points over a single day timeframe
 ggplot(temperature[source=="Inside Temperature"], aes(time.only,temperature,group=source,colour=source)) + 
   geom_point(alpha = 0.1)
+
+# calculate daily averages
+temperature$day.only <- strftime(temperature$time, format="%Y-%m-%d")
+temp.byday <- temperature[,.(mean.temp=mean(temperature)),by=c("day.only","source")]
+
+# match up inside and outside temp by day
+temp.byday.inside <- temp.byday[source=="Inside Temperature"]
+temp.byday.outside <- temp.byday[source=="Outside Temperature (RAF Benson)"]
+setkey(temp.byday.inside,day.only)
+setkey(temp.byday.outside,day.only)
+temp.byday <- temp.byday.outside[temp.byday.inside]
+
+# plot inside vs outside mean temp
+png("plots/temperature_regression.png",width=900,height=450)
+ggplot(temp.byday, aes(mean.temp,i.mean.temp)) + 
+  geom_point() +
+  theme_minimal() +
+  labs(x="Mean Outside Temperature (°C)",y="Mean Inside Temperature (°C)")
+dev.off()
+
+# to zoom into a reigon
+# temperature2 <- temperature[time %within% interval(ymd_hms("2016-06-05 00:00:00"),ymd_hms("2016-06-15 00:00:00"))]
