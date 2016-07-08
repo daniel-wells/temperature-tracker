@@ -35,5 +35,5 @@ Calculating an average temperature over a day we can see again that the fluctuat
 Zooming in by mean-centering and scaling each data set to equal variance you can see that the inside temperature does fluctuate in a similar pattern to the outside temperature but with a time lag. I'm tempted to suggest that the small peak at about midnight is due to the use of the hairdryer after showering.
 ![Plot of Temperature over Time](plots/daily_temperature_scaled.png)
 
-By plotting mean outside temperature by mean inside temperature for each day we can see that below ~10°C outside temperature the inside temperature is fairly independent and stable (thanks to the wonders of central heating!), but as the mean outside temperature increases above this the room temperature also increases in a linear fashion (being an english student room there is no air conditioning ☹) 
+By plotting mean outside temperature by mean inside temperature for each day we can see that below ~10°C outside temperature the inside temperature is fairly independent and stable (thanks to the wonders of central heating!), but as the mean outside temperature increases above this the room temperature also increases in a linear fashion (being a student room in the UK there is no air conditioning ☹).
 ![Plot of Temperature over Time](plots/temperature_regression.png)
