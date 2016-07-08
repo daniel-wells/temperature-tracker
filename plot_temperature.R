@@ -90,11 +90,16 @@ ggplot(daily.temperature, aes(interval,mean.temp,group=source,colour=source)) +
   labs(x="Time",y="Mean Temperature (°C)")
 dev.off()
 
-png("plots/daily_inside_temperature.png",width=900,height=450)
-ggplot(daily.temperature[source=="Inside Temperature"], aes(interval,mean.temp)) + 
+# zero-mean and scale to standard variance
+daily.temperature[source=="Inside Temperature",scaled.temp:=scale(mean.temp)]
+daily.temperature[source=="Outside Temperature (RAF Benson)",scaled.temp:=scale(mean.temp)]
+
+png("plots/daily_temperature_scaled.png",width=900,height=450)
+ggplot(daily.temperature, aes(interval,scaled.temp,group=source,colour=source)) + 
   geom_line() + 
   theme_minimal() +
   scale_x_datetime(date_labels="%H:%M") +
+  theme(legend.position="bottom") +
   labs(x="Time",y="Mean Temperature (°C)")
 dev.off()
 
