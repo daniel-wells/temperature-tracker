@@ -24,8 +24,8 @@ clean.file <- function(data){
 }
 
 internal.temperature <- data.table()
-for (file in list.files(pattern="data/temperature[0-9]+.tsv")){
-  internal.temperature <- rbind(internal.temperature,clean.file(fread(file)))
+for (file in list.files(path="data",pattern="temperature[0-9]+.tsv")){
+  internal.temperature <- rbind(internal.temperature,clean.file(fread(paste0("data/",file))))
 }
 
 internal.temperature$source <- "Inside Temperature"
