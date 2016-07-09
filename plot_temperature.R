@@ -54,6 +54,9 @@ temperature$temperature <- as.numeric(temperature$temperature)
 # remove outlier data points (-99.00)
 temperature <- temperature[temperature>(-30)]
 
+# Remove anomylous points when data logger was plugged into laptop
+temperature <- temperature[!time %within% interval(ymd_hms("2016-04-12 17:40:00"),ymd_hms("2016-04-12 18:20:00"))]
+
 # plot
 png("plots/temperature.png",width=900,height=450)
 ggplot(temperature, aes(time,temperature,group=source,colour=source)) + 
@@ -126,5 +129,3 @@ ggplot(temp.byday, aes(mean.temp,i.mean.temp)) +
   labs(x="Mean Outside Temperature (°C)",y="Mean Inside Temperature (°C)")
 dev.off()
 
-# to zoom into a reigon
-# temperature2 <- temperature[time %within% interval(ymd_hms("2016-06-05 00:00:00"),ymd_hms("2016-06-15 00:00:00"))]
