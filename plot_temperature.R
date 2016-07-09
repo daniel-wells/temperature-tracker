@@ -63,7 +63,7 @@ ggplot(temperature, aes(time,temperature,group=source,colour=source)) +
   geom_line() + 
   theme_minimal() +
   scale_x_datetime(date_minor_breaks = "1 day") +  
-  scale_y_continuous(breaks =-5:27) +
+  scale_y_continuous(breaks = seq(-5,27,2)) +
   theme(legend.position="bottom") +
   labs(x="",y="Temperature (°C)")
 dev.off()
