@@ -1,3 +1,4 @@
+#install.packages("lubridate")
 library(data.table)
 library(lubridate)
 library(ggplot2)
@@ -23,9 +24,16 @@ clean.file <- function(data){
   return(data)
 }
 
+data.files <- list.files(path="data",pattern="temperature[0-9]+.tsv")
+stopifnot(length(data.files)>0)
+
 internal.temperature <- data.table()
-for (file in list.files(path="data",pattern="temperature[0-9]+.tsv")){
-  internal.temperature <- rbind(internal.temperature,clean.file(fread(paste0("data/",file))))
+i = 0
+for (file in data.files){
+  i <- i+1
+  temp <- clean.file(fread(paste0("data/",file)))
+  temp$batch = i
+  internal.temperature <- rbind(internal.temperature,temp)
 }
 
 internal.temperature$source <- "Inside Temperature"
@@ -43,7 +51,7 @@ external.temperature$ObservationDate <- substr(external.temperature$ObservationD
 external.temperature$ObservationTime2 <- ymd_h(paste(external.temperature$ObservationDate,external.temperature$ObservationTime))
 
 # subset
-external.temperature <- external.temperature[,.("time"=ObservationTime2,"temperature"=ScreenTemperature,"source"="Outside Temperature (RAF Benson)")]
+external.temperature <- external.temperature[,.("time"=ObservationTime2,"temperature"=ScreenTemperature,"source"="Outside Temperature (RAF Benson)",batch=NA)]
 
 # 
 external.temperature <- external.temperature[time %within% interval(min(internal.temperature$time),max(internal.temperature$time))]
