@@ -63,7 +63,21 @@ temperature$temperature <- as.numeric(temperature$temperature)
 temperature <- temperature[temperature>(-30)]
 
 # Remove anomylous points when data logger was plugged into laptop
-temperature <- temperature[!time %within% interval(ymd_hms("2016-04-12 17:40:00"),ymd_hms("2016-04-12 18:20:00"))]
+outliers <- temperature[time %within% interval(ymd_hms("2016-04-12 17:40:00"),ymd_hms("2016-04-12 18:10:00"))
+                        | time %within% interval(ymd_hms("2016-07-20 17:40:00"),ymd_hms("2016-07-20 19:20:00"))
+                        | time %within% interval(ymd_hms("2016-07-26 23:21:00"),ymd_hms("2016-07-27 01:25:00"))
+                        | time %within% interval(ymd_hms("2016-07-28 19:10:00"),ymd_hms("2016-07-28 19:25:00"))]
+
+temperature <- temperature[!time %within% interval(ymd_hms("2016-04-12 17:40:00"),ymd_hms("2016-04-12 18:10:00"))
+                           & !time %within% interval(ymd_hms("2016-07-20 17:40:00"),ymd_hms("2016-07-20 19:20:00"))
+                           & !time %within% interval(ymd_hms("2016-07-26 23:21:00"),ymd_hms("2016-07-27 01:25:00"))
+                           & !time %within% interval(ymd_hms("2016-07-28 19:10:00"),ymd_hms("2016-07-28 19:25:00"))]
+
+# recursively remove outliers (when diff in consequtive temperatures >0.19)
+# temperature[source=="Inside Temperature",diff:=c(NA,diff(temperature))]
+# nrow(temperature[abs(diff)>0.2])
+# temperature <- temperature[abs(diff)<0.2]
+# plot(temperature$diff)
 
 # plot
 png("plots/temperature.png",width=900,height=450)
