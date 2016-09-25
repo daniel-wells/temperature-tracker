@@ -115,52 +115,62 @@ ggplot(temperature, aes(time, temperature, group = source, colour = source)) +
   geom_line() + 
   theme_minimal() +
   scale_x_datetime(date_minor_breaks = "1 day") +  
-  scale_y_continuous(breaks = seq(-5,27,2)) +
+  scale_y_continuous(breaks = seq(-4,32,2)) +
   theme(legend.position = "bottom") +
   labs(x = "", y = "Temperature (°C)")
 dev.off()
 
 png("plots/temperature_calendar.png", width = 900, height = 450)
 ggplot_calendar_heatmap(temperature[source=="Inside Temperature"], 'time', 'temperature') +
+  theme(legend.position = "bottom") +
   scale_fill_distiller(palette = 'RdBu')
 # facet_wrap(~Year, ncol = 1) # for when there's more than one year of data
 dev.off()
 
-# set dat month year to the same for all point so can calculate daily fluctuation
-temperature$time.only <- as.POSIXct(strftime(temperature$time, format = "%H:%M:%S"), format = "%H:%M:%S")
+# trim to make data point frequency even throughout
+trimmed <- rbind(temperature[source == "Inside Temperature" & batch==1][1:9755],
+            temperature[source == "Inside Temperature" & batch==1][10446:31985],
+            temperature[source == "Inside Temperature" & batch==2][178:31881],
+            temperature[source == "Inside Temperature" & batch==3],
+            temperature[source == "Outside Temperature (RAF Benson)"])
 
-# assign each data point to an interval
-temperature$interval <- as.POSIXct(cut(temperature$time.only, "30 mins"))
+# create time series objects
+inside.ts <- ts(trimmed[source == "Inside Temperature"]$temperature, frequency = 720)
+outside.ts <- ts(trimmed[source == "Outside Temperature (RAF Benson)"]$temperature, frequency = 24)
 
-# caclulate mean
-daily.temperature <- temperature[, .(mean.temp=mean(temperature)), by = list(source, interval)]
+# seperate daily cycle from overall trend
+decomp.outside <- decompose(outside.ts, type="multiplicative")
+decomp.inside <- decompose(inside.ts, type="multiplicative")
 
-# plot average daily pattern
-png("plots/daily_temperature.png", width = 900, height = 450)
-ggplot(daily.temperature, aes(interval, mean.temp, group = source, colour = source)) + 
-  geom_line() + 
+# stl.outside <- stl(log(outside.ts+10), s.window="periodic")
+
+# add seasonally adjusted values back
+# shoud really be decomp.inside$trend * decomp.inside$random
+trimmed[source == "Outside Temperature (RAF Benson)", trend := scale(decomp.outside$trend)[,1]]
+trimmed[source == "Outside Temperature (RAF Benson)", seasonal := scale(as.numeric(decomp.outside$seasonal))[,1]]
+
+trimmed[source == "Inside Temperature", trend := scale(decomp.inside$trend)[,1]]
+trimmed[source == "Inside Temperature", seasonal := scale(as.numeric(decomp.inside$seasonal))[,1]]
+
+# Ongoing Trend
+png("plots/co_trend.png", width = 900, height = 450)
+ggplot(trimmed, aes(time, trend, group = source, colour = source)) + 
+  geom_line() +
   theme_minimal() +
-  scale_x_datetime(date_labels = "%H:%M") +
   theme(legend.position = "bottom") +
-  labs(x = "Time", y = "Mean Temperature (°C)")
+  labs(x = "Time", y = "Scaled Temperature (°C)")
 dev.off()
 
-# zero-mean and scale to standard variance
-daily.temperature[source=="Inside Temperature", scaled.temp := scale(mean.temp)]
-daily.temperature[source=="Outside Temperature (RAF Benson)", scaled.temp := scale(mean.temp)]
-
-png("plots/daily_temperature_scaled.png", width = 900, height = 450)
-ggplot(daily.temperature, aes(interval, scaled.temp, group = source, colour = source)) + 
-  geom_line() + 
-  theme_minimal() +
+# Daily Cycles
+png("plots/daily_cycle.png", width = 900, height = 450)
+ggplot(trimmed[time %within% interval(ymd_hms("2016-04-15 00:00:00"), ymd_hms("2016-04-15 23:59:59"))], aes(time, seasonal, group = source, colour = source)) + 
+  geom_line() +
   scale_x_datetime(date_labels = "%H:%M") +
+  theme_minimal() +
   theme(legend.position = "bottom") +
-  labs(x = "Time", y = "Mean Temperature (°C)")
+  labs(x = "Time", y = "Scaled Temperature (°C)")
 dev.off()
 
-# plot all temp points over a single day timeframe
-ggplot(temperature[source=="Inside Temperature"], aes(time.only, temperature, group = source, colour = source)) + 
-  geom_point(alpha = 0.1)
 
 # calculate daily averages
 temperature$day.only <- strftime(temperature$time, format = "%Y-%m-%d")
