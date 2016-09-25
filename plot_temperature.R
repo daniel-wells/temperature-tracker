@@ -2,9 +2,14 @@
 library(data.table)
 library(lubridate)
 library(ggplot2)
+library(zoo) # for interpolation
 # devtools::install_github('Ather-Energy/ggTimeSeries')
-library(ggTimeSeries)
+library(ggTimeSeries) # for weekly heatmap
 library(RColorBrewer)
+
+######################################################
+############ LOAD AND CLEAN INTERNAL TEMPERATURE
+######################################################
 
 clean.file <- function(data){
   # remove empty columns
@@ -38,6 +43,22 @@ for (file in data.files){
 
 internal.temperature$source <- "Inside Temperature"
 
+# overwrite anomylous temperatures when data logger was plugged into laptop
+internal.temperature[time %within% interval(ymd_hms("2016-04-12 17:40:00"), ymd_hms("2016-04-12 18:10:00"))]$temperature <- 22.0
+internal.temperature[time %within% interval(ymd_hms("2016-07-20 17:40:00"), ymd_hms("2016-07-20 19:20:00"))]$temperature <- 26.4
+internal.temperature[time %within% interval(ymd_hms("2016-07-26 23:21:00"), ymd_hms("2016-07-27 01:25:00"))]$temperature <- 24.8
+internal.temperature[time %within% interval(ymd_hms("2016-07-28 19:10:00"), ymd_hms("2016-07-28 19:25:00"))]$temperature <- 24.6
+
+# recursively remove outliers (when diff in consequtive temperatures >0.19)
+# temperature[source == "Inside Temperature", diff := c(NA, diff(temperature))]
+# nrow(temperature[abs(diff) > 0.2])
+# temperature <- temperature[abs(diff) < 0.2]
+# plot(temperature$diff)
+
+######################################################
+############ LOAD AND CLEAN EXTERNAL TEMPERATURE
+######################################################
+
 # https://datamarket.azure.com/dataset/datagovuk/metofficeweatheropendata
 # limit ID > 5300088 & site name == BENSON (3658)
 # https://api.datamarket.azure.com/DataGovUK/MetOfficeWeatherOpenData/v1/Observation?$filter=ID%20gt%205300000L%20and%20SiteName%20eq%20%27BENSON%20(3658)%27
@@ -47,37 +68,46 @@ source("config.R")
 
 external.temperature <- fread(paste0("https://datamarket.azure.com/offer/download?endpoint=https%3A%2F%2Fapi.datamarket.azure.com%2FDataGovUK%2FMetOfficeWeatherOpenData%2Fv1%2F&query=Observation%3F%24filter%3DID%2520gt%25205300000L%2520and%2520SiteName%2520eq%2520%2527BENSON%2520(3658)%2527&accountKey=",api.key,"&title=UK+Met+Office+Weather+Open+Data&name=UK+Met+Office+Weather+Open+Data-Observation"))
 
+# extract date
 external.temperature$ObservationDate <- substr(external.temperature$ObservationDate, 0, 10)
 external.temperature$ObservationTime2 <- ymd_h(paste(external.temperature$ObservationDate, external.temperature$ObservationTime))
 
-# subset
-external.temperature <- external.temperature[, .("time" = ObservationTime2, "temperature" = ScreenTemperature, "source" = "Outside Temperature (RAF Benson)", batch = NA)]
+# subset columns
+external.temperature <- external.temperature[, .("time" = ObservationTime2, "temperature" = as.numeric(ScreenTemperature), "source" = "Outside Temperature (RAF Benson)", batch = NA)]
 
-# 
+# time to within the internal temperature range
 external.temperature <- external.temperature[time %within% interval(min(internal.temperature$time), max(internal.temperature$time))]
 
+# some missing data & some duplicates
+
+# remove outlier data points (-99.00), temperature[temperature < (-30)]
+external.temperature[temperature < (-30)]$temperature <- NA
+
+# remove duplicates
+duplicates <- which(duplicated(external.temperature, by = "time")==T)
+external.temperature[duplicates]$temperature <- 9999
+external.temperature <- external.temperature[!temperature == 9999]
+
+# correct missing data
+missing.indexes <- which(diff(external.temperature$time) != 1)
+missing.times <- external.temperature[missing.indexes]$time + hms("01:00:00")
+missing.rows <- data.table(batch = NA, source = "Outside Temperature (RAF Benson)", time = missing.times, temperature = NA)
+
+external.temperature <- rbind(external.temperature, missing.rows)
+external.temperature <- external.temperature[order(time)]
+
+# interpolate missing temperatures
+external.temperature$temperature <- na.spline(external.temperature$temperature)
+
+# remove a day (too much missing to impute)
+external.temperature <- external.temperature[!time %within% interval(ymd_hms("2016-03-19 00:00:00"), ymd_hms("2016-03-19 23:59:59"))]
+
+#########################################################
+######### combine inside and outside datasets & analyse
+#########################################################
 temperature <- rbind(internal.temperature, external.temperature)
 temperature$temperature <- as.numeric(temperature$temperature)
 
-# remove outlier data points (-99.00)
-temperature <- temperature[temperature > (-30)]
-
-# Remove anomylous points when data logger was plugged into laptop
-outliers <- temperature[time %within% interval(ymd_hms("2016-04-12 17:40:00"), ymd_hms("2016-04-12 18:10:00"))
-                        | time %within% interval(ymd_hms("2016-07-20 17:40:00"), ymd_hms("2016-07-20 19:20:00"))
-                        | time %within% interval(ymd_hms("2016-07-26 23:21:00"), ymd_hms("2016-07-27 01:25:00"))
-                        | time %within% interval(ymd_hms("2016-07-28 19:10:00"), ymd_hms("2016-07-28 19:25:00"))]
-
-temperature <- temperature[!time %within% interval(ymd_hms("2016-04-12 17:40:00"), ymd_hms("2016-04-12 18:10:00"))
-                           & !time %within% interval(ymd_hms("2016-07-20 17:40:00"), ymd_hms("2016-07-20 19:20:00"))
-                           & !time %within% interval(ymd_hms("2016-07-26 23:21:00"), ymd_hms("2016-07-27 01:25:00"))
-                           & !time %within% interval(ymd_hms("2016-07-28 19:10:00"), ymd_hms("2016-07-28 19:25:00"))]
-
-# recursively remove outliers (when diff in consequtive temperatures >0.19)
-# temperature[source == "Inside Temperature", diff := c(NA, diff(temperature))]
-# nrow(temperature[abs(diff) > 0.2])
-# temperature <- temperature[abs(diff) < 0.2]
-# plot(temperature$diff)
 
 # plot
 png("plots/temperature.png", width = 900, height = 450)
