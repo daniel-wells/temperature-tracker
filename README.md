@@ -24,16 +24,16 @@ api.key <- "ExampleApiKey0908338"
 
 ![Plot of Temperature over Time](plots/temperature.png)
 
-You can see when I went away towards the end of March and turned down my radiator. Unfortunately towards the end of April the storage ran out and I forgot to empty it.
+At first glance it looks like my accomodation is doing a good job of sheltering me from the UK weather. The temperature inside is usually higher than outside and has much less variation. The only time the inside temperature drops below 20 degrees centrigrade is when I went away towards the end of March and turned down my radiator. Unfortunately towards the end of April the thermometer memory filled up and I forgot to empty it.
 
 We can also plot temperature in a calendar fashion which helps in identifying weekly patterns. In this form the decrease in temperature whilst I was away and the missing data is more obvious.
 ![Plot of Temperature over Time](plots/temperature_calendar.png)
 
-Calculating an average temperature over a day we can see again that the fluctuation in the outisde temperature is much greater than in my room.
-![Plot of Temperature over Time](plots/daily_temperature.png)
+You can see the data above has daily cycles as well as longer term trends. We can seperate these fluctuations to make things clearer. Looking at the scaled daily flucluations alone you can see that the inside temperature does fluctuate in a similar pattern to the outside temperature but with a time lag.
+![Plot of Temperature over Time](plots/daily_cycle.png)
 
-Zooming in by mean-centering and scaling each data set to equal variance you can see that the inside temperature does fluctuate in a similar pattern to the outside temperature but with a time lag. I'm tempted to suggest that the small peak at about midnight is due to the use of the hairdryer after showering.
-![Plot of Temperature over Time](plots/daily_temperature_scaled.png)
+By plotting the scaled general trend without the noise of daily fluctuation you can more clearly see how the inside temperature tracks the outside temperature. However this effect seems stronger at higher temperatures. This could be expected as low outside temperatures can be componsated with heating but as I have no air conditioning higher temperatures outside can not be so easily counteracted.
+![Plot of Temperature over Time](plots/co_trend.png)
 
-By plotting mean outside temperature by mean inside temperature for each day we can see that below ~10°C outside temperature the inside temperature is fairly independent and stable (thanks to the wonders of central heating!), but as the mean outside temperature increases above this the room temperature also increases in a linear fashion (being a student room in the UK there is no air conditioning ☹).
+By plotting mean daily outside vs inside temperature we can see that below ~10°C outside temperature the inside temperature is fairly independent and stable, but as the mean outside temperature increases above this the room temperature also increases in a linear fashion.
 ![Plot of Temperature over Time](plots/temperature_regression.png)
