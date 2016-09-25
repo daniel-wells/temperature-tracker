@@ -171,23 +171,19 @@ ggplot(trimmed[time %within% interval(ymd_hms("2016-04-15 00:00:00"), ymd_hms("2
   labs(x = "Time", y = "Scaled Temperature (°C)")
 dev.off()
 
+# Scatterplot / Regression
 
-# calculate daily averages
+# calculate daily mean temperature
 temperature$day.only <- strftime(temperature$time, format = "%Y-%m-%d")
 temp.byday <- temperature[, .(mean.temp = mean(temperature)), by = c("day.only", "source")]
 
-# match up inside and outside temp by day
-temp.byday.inside <- temp.byday[source == "Inside Temperature"]
-temp.byday.outside <- temp.byday[source == "Outside Temperature (RAF Benson)"]
-setkey(temp.byday.inside, day.only)
-setkey(temp.byday.outside, day.only)
-temp.byday <- temp.byday.outside[temp.byday.inside]
+temp.byday <- dcast(temp.byday, day.only ~ source, value.var="mean.temp")
+colnames(temp.byday) <- c("day","mean.inside","mean.outside")
 
 # plot inside vs outside mean temp
 png("plots/temperature_regression.png", width = 900, height = 450)
-ggplot(temp.byday, aes(mean.temp, i.mean.temp)) + 
+ggplot(temp.byday, aes(mean.outside, mean.inside)) + 
   geom_point() +
   theme_minimal() +
   labs(x = "Mean Outside Temperature (°C)", y = "Mean Inside Temperature (°C)")
 dev.off()
-
